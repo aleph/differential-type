@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxGui.h"
+#include "ofxSvg.h"
 
 class ofApp : public ofBaseApp{
 
@@ -9,28 +11,48 @@ class ofApp : public ofBaseApp{
 		void update();
 		void draw();
 
+		void reset();
+
+		void updateCurve();
+		void updateRadiuses();
+
 		void keyPressed(int key);
-		void keyReleased(int key);
-		void mouseMoved(int x, int y );
-		void mouseDragged(int x, int y, int button);
 		void mousePressed(int x, int y, int button);
-		void mouseReleased(int x, int y, int button);
-		void mouseEntered(int x, int y);
-		void mouseExited(int x, int y);
-		void windowResized(int w, int h);
-		void dragEvent(ofDragInfo dragInfo);
-		void gotMessage(ofMessage msg);
 		
 
 		ofColor bkg;
 		ofColor shp;
-		ofPolyline ply;
-		float size;
 		ofVec3f startPoint;
-};
+		bool stop;
+		bool saved;
+		int counter;
 
-class DifferentialCurve {
+		ofPolyline curve;
+		vector<vector<glm::vec3>> curves;
 
-	public:
+		vector<vector<vector<glm::vec3>>> m_curves;
 
+		vector<float> radiuses;
+		vector<glm::vec3> originalVertices;
+
+		ofxPanel gui;
+		ofParameterGroup curve_gui;
+		ofParameter<float> size;
+		ofParameter<bool> square;
+		ofParameter<bool> ascend;
+		ofParameter<bool> straight;
+		ofParameter<float> maxRadius;
+		ofParameter<float> minRadius;
+		ofParameter<float> fieldScale;
+		ofParameter<float> change;
+		ofParameter<float> noisePos;
+		ofParameter<float> lateralScale;
+		ofParameter<float> margin;
+		ofParameter<float> height;
+		ofParameter<float> mess;
+		ofParameter<float> points;
+
+		ofxSVG base;
+		vector<ofPolyline> outlines;
+		/*vector<ofPath::Command> commands;*/
 };
