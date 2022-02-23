@@ -4,6 +4,7 @@
 #include "ofxGui.h"
 #include "ofxSvg.h"
 
+
 class ofApp : public ofBaseApp{
 
 	public:
@@ -12,9 +13,25 @@ class ofApp : public ofBaseApp{
 		void draw();
 
 		void keyPressed(int key);
+		void keyReleased(int key);
+		void mouseMoved(int x, int y);
+		void mouseDragged(int x, int y, int button);
 		void mousePressed(int x, int y, int button);
+		void mouseReleased(int x, int y, int button);
+		void mouseEntered(int x, int y);
+		void mouseExited(int x, int y);
+		void windowResized(int w, int h);
+		void dragEvent(ofDragInfo dragInfo);
+		void gotMessage(ofMessage msg);
+
 
 		void reset();
+		void updateSystem();
+		void updateRTree();
+
+		vector<int> findNeighbours(ofVec3f ag, int id);
+		void computeDesiredVelocity(int id, vector<int> neighbours);
+		void updateVelocityAndPosition(int id);
 
 
 		//----PARAMS
@@ -22,13 +39,16 @@ class ofApp : public ofBaseApp{
 		bool gui_on;
 		int reset_counter;
 		int count;
+		bool debug;
+		bool resetting;
 
 
 
 		//----LINES
 		ofxSVG base;
 		ofRectangle layout;
-		vector<ofPolyline> lines_vec;
+		vector<ofPolyline> curves_vec;
+		vector<ofVec3f> desired_velocities;
 
 
 
@@ -39,26 +59,7 @@ class ofApp : public ofBaseApp{
 
 
 
-
-		
-
-		//void updateCurve();
-		//void updateRadiuses();
-
-
-		//ofVec3f startPoint;
-		//bool stop;
-		//bool saved;
-		//int counter;
-
-		//ofPolyline curve;
-		//vector<vector<glm::vec3>> curves;
-
-		//vector<vector<vector<glm::vec3>>> m_curves;
-
-		//vector<float> radiuses;
-		//vector<glm::vec3> originalVertices;
-
+		//----GUIs
 		ofxPanel gui;
 		ofParameterGroup curve_gui;
 		ofParameter<float> w_layout;
@@ -68,8 +69,22 @@ class ofApp : public ofBaseApp{
 		ofParameter<bool> based;
 		ofParameter<bool> save;
 		ofParameter<float> draw_vertex;
+		//-------------------------------
+		ofParameter<float> NeighborhoodRadiusSquare;
+		ofParameter<float> CohesionStrength;
+		ofParameter<float> AlignmentStrength;
+		ofParameter<float> SeparationStrength;
+		ofParameter<float> SeparationRadius;
+		ofParameter<float> FieldStrength;
+		ofParameter<float> FieldScale;
+		ofParameter<float> FieldTime;
+		ofParameter<float> MaxAngle;
+		ofParameter<float> MaxSpeed;
+		ofParameter<float> Inertia;
+		ofParameter<float> BoundingBoxSize;
+		ofParameter<float> ContainmentStrength;
 
 
-		//vector<ofPolyline> outlines;
-		/*vector<ofPath::Command> commands;*/
+		//RTree PointsRTree;
+
 };
