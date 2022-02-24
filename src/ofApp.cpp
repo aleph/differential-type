@@ -7,8 +7,8 @@ void ofApp::setup() {
 	background_col = colorz[0];
 	shape_col = colorz[1];
 
-	curve_gui.add(w_layout.set("w_layout", 1000., 1., 10000.));
-	curve_gui.add(h_layout.set("h_layout", 1000., 1., 10000.));
+	curve_gui.add(w_layout.set("w_layout", 2000., 1., 10000.));
+	curve_gui.add(h_layout.set("h_layout", 2000., 1., 10000.));
 	curve_gui.add(base_points.set("base_points", 100, 0, 1000));
 	curve_gui.add(base_vertexes.set("base_vertexes", 50, 0, 1000));
 	curve_gui.add(based.set("based", false, false, true));
@@ -17,8 +17,8 @@ void ofApp::setup() {
 	curve_gui.add(stop.set("stop", false, false, true));
 	curve_gui.add(freeze.set("freeze", true, false, true));
 	curve_gui.add(values_ratio.set("values_ratio", 0.4, 0.0, 1.0));
-	curve_gui.add(draw_vertex.set("draw_vertex", 4, 0, 10));
-	curve_gui.add(draw_field.set("draw_field", 0.1, 0.0, 1.0));
+	curve_gui.add(draw_vertex.set("draw_vertex", 0, 0, 10));
+	curve_gui.add(draw_field.set("draw_field", 0.02, 0.0, 1.0));
 	curve_gui.add(draw_neighbourhood.set("draw_neighbourhood", false, false, true));
 	curve_gui.add(draw_separation.set("draw_separation", false, false, true));
 
@@ -35,14 +35,14 @@ void ofApp::setup() {
 	curve_gui.add(MaxAngle.set("MaxAngle", 180, 0.0, 360));
 	curve_gui.add(MaxSpeed.set("MaxSpeed", .05, 0.0, 1.0));
 	curve_gui.add(Inertia.set("Inertia", 0.97, 0.0, 1.0));
-	curve_gui.add(BoundingBoxSize.set("BoundingBoxSize", 800.0, 0.0, 1000.0));
+	curve_gui.add(BoundingBoxSize.set("BoundingBoxSize", 1600.0, 0.0, 1000.0));
 	curve_gui.add(ContainmentStrength.set("ContainmentStrength", 200.0, 0.0, 1000.0));
 	//----------------------------------------------
 
+	gui.enableHiDpi;
 	gui.setup(curve_gui);
 	gui.setPosition(ofGetWidth() - 220, 0);
-	gui.setSize(128, 128);
-
+	gui.setSize(256, 256);
 
 	debug = false;
 	reset_counter = 0;
@@ -54,6 +54,9 @@ void ofApp::setup() {
 void ofApp::reset() {
 	if (debug)
 		cout << "_resetting" << endl;
+
+
+	drawFbo.allocate(w_layout, h_layout);
 
 	layout = ofRectangle(0, 0, w_layout, h_layout);
 	if (debug)
@@ -151,6 +154,8 @@ void ofApp::draw(){
 
 	if (debug)
 		cout << "_drawing-background";
+
+	drawFbo.begin();
 	ofFill();
 	ofSetColor(background_col);
 	ofDrawRectangle(layout);
@@ -205,35 +210,41 @@ void ofApp::draw(){
 		}
 	}
 
+	if (!save) {
+		for (int i = 0; i < curves_vec.size(); i++) {
+			ofNoFill();
+			ofSetLineWidth(1);
 
-	if (save) {
-		if (debug)
-			cout << "_start-saving";
-
-		ofBeginSaveScreenAsSVG("test.svg");
-	}
-
-
-	for (int i = 0; i < curves_vec.size(); i++) {
-		ofNoFill();
-		ofSetLineWidth(1);
-
-		ofBeginShape();
-		for (int j = 0; j < curves_vec[i].size(); j++) {
-			ofCurveVertex(curves_vec[i][j]);
+			ofBeginShape();
+			for (int j = 0; j < curves_vec[i].size(); j++) {
+				ofCurveVertex(curves_vec[i][j]);
+			}
+			ofEndShape();
 		}
-		ofEndShape();
 	}
-
+	drawFbo.end();
 
 	if (save) {
+		ofBeginSaveScreenAsSVG("test.svg");
+
+		for (int i = 0; i < curves_vec.size(); i++) {
+			ofNoFill();
+			ofSetLineWidth(1);
+
+			ofBeginShape();
+			for (int j = 0; j < curves_vec[i].size(); j++) {
+				ofCurveVertex(curves_vec[i][j]);
+			}
+			ofEndShape();
+		}
+
 		ofEndSaveScreenAsSVG();
 		save = false;
 	}
+	else {
+		drawFbo.draw(0, 0, ofGetWindowHeight() * (w_layout / h_layout), ofGetWindowHeight());
+	}
 
-	//ofSetLineWidth(10);
-	//ofSetColor(0.0);
-	//containment.draw();
 		
 	if (gui_on) {
 		gui.draw();

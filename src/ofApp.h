@@ -61,6 +61,7 @@ class ofApp : public ofBaseApp{
 		ofColor background_col;
 		ofColor shape_col;
 		vector<ofColor> colorz;
+		ofFbo drawFbo;
 
 
 
