@@ -3,38 +3,48 @@
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-	vector<ofColor> colorz{ ofColor::aliceBlue, ofColor::lightCoral };
+	colorz = vector<ofColor>{ ofColor::white, ofColor::black, ofColor::lightCoral };
 	background_col = colorz[0];
 	shape_col = colorz[1];
 
 	curve_gui.add(w_layout.set("w_layout", 1000., 1., 10000.));
 	curve_gui.add(h_layout.set("h_layout", 1000., 1., 10000.));
-	curve_gui.add(base_points.set("base_points", 10, 0, 1000));
-	curve_gui.add(base_vertexes.set("base_vertexes", 4, 0, 1000));
+	curve_gui.add(base_points.set("base_points", 100, 0, 1000));
+	curve_gui.add(base_vertexes.set("base_vertexes", 50, 0, 1000));
 	curve_gui.add(based.set("based", false, false, true));
+	curve_gui.add(based_field.set("based_field", false, false, true));
 	curve_gui.add(save.set("save", false, false, true));
+	curve_gui.add(stop.set("stop", false, false, true));
+	curve_gui.add(freeze.set("freeze", true, false, true));
+	curve_gui.add(values_ratio.set("values_ratio", 0.4, 0.0, 1.0));
 	curve_gui.add(draw_vertex.set("draw_vertex", 4, 0, 10));
+	curve_gui.add(draw_field.set("draw_field", 0.1, 0.0, 1.0));
+	curve_gui.add(draw_neighbourhood.set("draw_neighbourhood", false, false, true));
+	curve_gui.add(draw_separation.set("draw_separation", false, false, true));
+
 	//----------------------------------------------
-	curve_gui.add(NeighborhoodRadiusSquare.set("NeighborhoodRadiusSquare", .0, 0.0, 1.0));
-	curve_gui.add(CohesionStrength.set("CohesionStrength", .0, 0.0, 1.0));
-	curve_gui.add(AlignmentStrength.set("AlignmentStrength", .0, 0.0, 1.0));
-	curve_gui.add(SeparationStrength.set("SeparationStrength", .0, 0.0, 1.0));
-	curve_gui.add(SeparationRadius.set("SeparationRadius", .0, 0.0, 1.0));
-	curve_gui.add(FieldStrength.set("FieldStrength", .0, 0.0, 1.0));
-	curve_gui.add(FieldScale.set("FieldScale", .0, 0.0, 1.0));
-	curve_gui.add(FieldTime.set("FieldTime", .0, 0.0, 1.0));
-	curve_gui.add(MaxAngle.set("MaxAngle", 90, 0.0, 360));
-	curve_gui.add(MaxSpeed.set("MaxSpeed", .3, 0.0, 1.0));
+	curve_gui.add(NeighborhoodRadiusSquare.set("NeighborhoodRadiusSquare", .6, 0.0, 1.0));
+	curve_gui.add(CohesionStrength.set("CohesionStrength", .3, 0.0, 1.0));
+	curve_gui.add(AlignmentStrength.set("AlignmentStrength", .15, 0.0, 1.0));
+	curve_gui.add(SeparationStrength.set("SeparationStrength", .8, 0.0, 1.0));
+	curve_gui.add(SeparationRadius.set("SeparationRadius", .4, 0.0, 1.0));
+	curve_gui.add(FieldStrength.set("FieldStrength", .8, 0.0, 1.0));
+	curve_gui.add(ScalarStrength.set("ScalarStrength", .8, 0.0, 1.0));
+	curve_gui.add(FieldScale.set("FieldScale", .034, 0.0, 0.2));
+	curve_gui.add(FieldTime.set("FieldTime", 5.15, 0.0, 10.0));
+	curve_gui.add(MaxAngle.set("MaxAngle", 180, 0.0, 360));
+	curve_gui.add(MaxSpeed.set("MaxSpeed", .05, 0.0, 1.0));
 	curve_gui.add(Inertia.set("Inertia", 0.97, 0.0, 1.0));
-	curve_gui.add(BoundingBoxSize.set("BoundingBoxSize", 1000.0, 0.0, 1000.0));
-	curve_gui.add(ContainmentStrength.set("ContainmentStrength", .0, 0.0, 1.0));
+	curve_gui.add(BoundingBoxSize.set("BoundingBoxSize", 800.0, 0.0, 1000.0));
+	curve_gui.add(ContainmentStrength.set("ContainmentStrength", 200.0, 0.0, 1000.0));
+	//----------------------------------------------
 
 	gui.setup(curve_gui);
-	gui.setPosition(ofGetWidth() - 256, 0);
+	gui.setPosition(ofGetWidth() - 220, 0);
 	gui.setSize(128, 128);
 
 
-	debug = true;
+	debug = false;
 	reset_counter = 0;
 	resetting = false;
 	reset();
@@ -58,6 +68,12 @@ void ofApp::reset() {
 	running = true;
 	gui_on = false;
 	count = 0;
+	values_bias = min(w_layout, h_layout) * values_ratio;
+
+
+	vector<glm::vec3> cont_vertexes{ ofPoint((w_layout - BoundingBoxSize) * 0.5, (h_layout - BoundingBoxSize) * 0.5), ofPoint(BoundingBoxSize, (h_layout - BoundingBoxSize) * 0.5), ofPoint(BoundingBoxSize, BoundingBoxSize), ofPoint((w_layout - BoundingBoxSize) * 0.5, BoundingBoxSize) };
+	containment = ofPolyline(cont_vertexes);
+	containment.close();
 
 	if (debug)
 		cout << "_setting-curves" << endl;
@@ -81,14 +97,18 @@ void ofApp::reset() {
 		// Build lines
 		for (int i = 0; i < base_points; i++) {
 			ofPolyline new_poly;
+			ofVec3f velocity = ofVec3f(ofRandom(-1.0, 1.0), ofRandom(-1.0, 1.0));
+			velocity.limit(MaxSpeed * values_bias);
+
 			new_poly.addVertex(ofVec3f(ofRandom(0.2, 0.8) * w_layout, ofRandom(0.2, 0.8) * h_layout, 0.0f));
-			for (int i = 1; i < base_vertexes; i++) {
-				new_poly.addVertex(ofVec3f(new_poly[0].x + ofRandom(-0.5, 0.5) * w_layout * 1/(float)base_points, new_poly[0].y + ofRandom(-1.0, 1.0) * h_layout * 1 / (float)base_points));
+			new_poly.addVertex(new_poly[0] + velocity);
+			for (int i = 2; i < base_vertexes; i++) {
+				new_poly.addVertex(ofVec3f(new_poly[0].x + ofRandom(-0.1, 0.1) * values_bias, new_poly[0].y + ofRandom(-0.1, 0.1) * values_bias));
 			}
 
 			if (debug)
 				cout << "new_poly: " << curves_vec.size() << endl;
-			curves_vec[i] =new_poly;
+			curves_vec[i] = new_poly;
 			desired_velocities[i] = ofVec3f(0.0, 0.0);
 		}
 	}
@@ -101,6 +121,10 @@ void ofApp::update(){
 		reset();
 
 		resetting = false;
+	}
+
+	if (stop) {
+		running = false;
 	}
 
 	if (running) {
@@ -131,7 +155,56 @@ void ofApp::draw(){
 	ofSetColor(background_col);
 	ofDrawRectangle(layout);
 
+	if (draw_field > 0.0) {
+		ofSetLineWidth(1);
+		ofSetColor(colorz[2]);
+
+		float test_num = 20.0;
+		for (int i = 0.5; i < test_num; i++) {
+			for (int j = 0.5; j < test_num; j++) {
+				ofVec3f test_point(i * w_layout / test_num, j * h_layout / test_num);
+
+				ofVec3f vector_field = computeVectorFieldHere(test_point);
+				float scalar_field = computeFieldHere(test_point);
+
+				ofDrawLine(test_point, test_point + vector_field * values_bias * draw_field);
+				ofDrawCircle(test_point, scalar_field * values_bias * draw_field * 0.5);
+			}
+		}
+	}
+
+	ofNoFill();
+	if (draw_neighbourhood) {
+		for (int i = 0; i < curves_vec.size(); i++) {
+			ofDrawCircle(curves_vec[i][1], NeighborhoodRadiusSquare * values_bias);
+		}
+	}
+
+	if (draw_separation) {
+		for (int i = 0; i < curves_vec.size(); i++) {
+			ofDrawCircle(curves_vec[i][1], SeparationRadius * values_bias);
+		}
+	}
+
+
+	if (debug)
+		cout << "_drawing";
 	ofSetColor(shape_col);
+	for (int i = 0; i < curves_vec.size(); i++) {
+		ofNoFill();
+		ofSetLineWidth(1);
+
+		//curves_vec[i].draw();
+
+		if (draw_vertex > 0) {
+			ofFill();
+			ofSetLineWidth(1);
+			for (int j = 0; j < curves_vec[i].size(); j++) {
+				ofDrawCircle(curves_vec[i][j], draw_vertex * (0.5 + 0.5 * ((curves_vec[i].size() - j) / (float)curves_vec[i].size())));
+			}
+		}
+	}
+
 
 	if (save) {
 		if (debug)
@@ -140,47 +213,31 @@ void ofApp::draw(){
 		ofBeginSaveScreenAsSVG("test.svg");
 	}
 
-	if (debug)
-		cout << "_drawing";
+
 	for (int i = 0; i < curves_vec.size(); i++) {
 		ofNoFill();
-		ofSetLineWidth(2);
+		ofSetLineWidth(1);
 
-		curves_vec[i].draw();
-
-		if (draw_vertex > 0) {
-			ofFill();
-			ofSetLineWidth(1);
-			for (int j = 0; j < curves_vec[i].size(); j++) {
-				ofDrawCircle(curves_vec[i][j], draw_vertex);
-			}
+		ofBeginShape();
+		for (int j = 0; j < curves_vec[i].size(); j++) {
+			ofCurveVertex(curves_vec[i][j]);
 		}
+		ofEndShape();
 	}
 
 
-	//ofBeginShape();
-	//ofCurveVertex(curves[0][originalVertices.size() - 1]);
-	//for (int i = 0; i < curves.size(); i++) {
-	//	if (i == curves.size() - 1) ofSetLineWidth(6);
-	//	//ofCurveVertex(curves[i][originalVertices.size() - 1]);
-	//	for (int j = 0; j < originalVertices.size(); j++) {
-	//		ofCurveVertex(curves[i][j]);
-	//	}
-	//	//ofCurveVertex(curves[i][0]);
-	//	//ofCurveVertex(curves[i][1]);
-	//}
-	//ofCurveVertex(curves[curves.size() - 1][0]);
-	//ofEndShape();
-
 	if (save) {
-		ofBeginSaveScreenAsSVG("test.svg");
+		ofEndSaveScreenAsSVG();
 		save = false;
 	}
 
+	//ofSetLineWidth(10);
+	//ofSetColor(0.0);
+	//containment.draw();
 		
 	if (gui_on) {
 		gui.draw();
-		ofDrawBitmapStringHighlight("FPS: " + ofToString(ofGetFrameRate()), glm::vec2(ofGetWidth() - 96, ofGetHeight() - 8));
+		ofDrawBitmapStringHighlight("FPS: " + ofToString(ofGetFrameRate()), glm::vec2(ofGetWidth() - 110, ofGetHeight() - 15));
 	}
 }
 
@@ -211,7 +268,7 @@ vector<int> ofApp::findNeighbours(ofVec3f ag, int id) {
 	for (int i = 0; i < curves_vec.size(); i++) {
 		ofVec3f possible_neighbour = curves_vec[i][1];
 
-		if (id != i && possible_neighbour.squareDistance(ag) < NeighborhoodRadiusSquare) {
+		if (id != i && possible_neighbour.squareDistance(ag) < (NeighborhoodRadiusSquare * values_bias * values_bias)) {
 			neighbours.push_back(i);
 		}
 	}
@@ -227,17 +284,31 @@ void ofApp::computeDesiredVelocity(int id, vector<int> neighbours) {
 	ofVec3f desiredVelocity(0.0, 0.0);
 
 	// ------------------------------ CONTAINMENT -----------------
-	if (position.x < 0.0)
-		desiredVelocity += ofVec3f(-position.x, 0, 0);
-	else if (position.x > BoundingBoxSize)
-		desiredVelocity += ofVec3f(BoundingBoxSize - position.x, 0, 0);
+	//if (position.x < (w_layout - BoundingBoxSize) * 0.5)
+	//	desiredVelocity += ofVec3f((w_layout - BoundingBoxSize) * 0.5 -position.x, 0, 0);
+	//else if (position.x > BoundingBoxSize)
+	//	desiredVelocity += ofVec3f(BoundingBoxSize - position.x, 0, 0);
 
-	if (position.y < 0.0)
-		desiredVelocity += ofVec3f(0, -position.y, 0);
-	else if (position.y > BoundingBoxSize)
-		desiredVelocity += ofVec3f(0, BoundingBoxSize - position.y, 0);
+	//if (position.y < (h_layout - BoundingBoxSize) * 0.5)
+	//	desiredVelocity += ofVec3f(0, (h_layout - BoundingBoxSize) * 0.5 -position.y, 0);
+	//else if (position.y > BoundingBoxSize)
+	//	desiredVelocity += ofVec3f(0, BoundingBoxSize - position.y, 0);
 
-	desiredVelocity *= ContainmentStrength;
+	//desiredVelocity *= (ContainmentStrength /** values_bias*/);
+
+	ofPoint closestPoint = containment.getClosestPoint(position);
+	if (debug)
+		cout << "closest_point" << ofToString(closestPoint) << endl;
+
+	ofVec3f getAway = position - closestPoint;
+	if (getAway.length() < (SeparationRadius * values_bias))
+	{
+		getAway /= (getAway.length() * getAway.length());
+		desiredVelocity += getAway;
+	}
+
+	//desiredVelocity.limit(MaxSpeed * values_bias);
+	desiredVelocity *= (ContainmentStrength * values_bias);
 
 
 	// -------------------------------- FLOCKING --------------------------------
@@ -258,18 +329,18 @@ void ofApp::computeDesiredVelocity(int id, vector<int> neighbours) {
 		ofVec3f cohesion = average - position;
 
 		// update desired velocity
-		desiredVelocity += CohesionStrength * cohesion;
+		desiredVelocity += cohesion * CohesionStrength /** values_bias*/;
 
 		// . . . . . . . . . . . . . ALIGNMENT BEHAVIOUR  . . . . . . . . . . . . .
 		ofVec3f alignment(0.0, 0.0);
 
 		for (int i = 0; i < neighbours.size(); i++) {
-			alignment += curves_vec[neighbours[i]][0];
+			alignment += (curves_vec[neighbours[i]][0] - curves_vec[neighbours[i]][1]);
 		}
 
 		alignment /= neighbours.size();
 
-		desiredVelocity += AlignmentStrength * alignment;
+		desiredVelocity += AlignmentStrength * alignment  /** values_bias*/;
 
 		// . . . . . . . . . . . . . SEPARATION BEHAVIOUR  . . . . . . . . . . . . .
 		ofVec3f separation(0.0, 0.0);
@@ -277,7 +348,7 @@ void ofApp::computeDesiredVelocity(int id, vector<int> neighbours) {
 		for (int i = 0; i < neighbours.size(); i++) {
 			float distanceToNeighbour = position.distance(curves_vec[neighbours[i]][1]);
 
-			if (distanceToNeighbour < SeparationRadius)
+			if (distanceToNeighbour < (SeparationRadius * values_bias))
 			{
 				ofVec3f getAway = position - curves_vec[neighbours[i]][1];
 				getAway /= (getAway.length() * distanceToNeighbour);
@@ -285,21 +356,23 @@ void ofApp::computeDesiredVelocity(int id, vector<int> neighbours) {
 			}
 		}
 
-		desiredVelocity += SeparationStrength * separation;
+		desiredVelocity += SeparationStrength * separation  * values_bias;
 
 	}
 
 
 	// -------------------------------- FIELD --------------------------------
-	ofVec3f p(position);
-	p *= FieldScale;
-	p += ofVec3f(0, 0, FieldTime);
-	float angle = ofSignedNoise(p) * MaxAngle;
-	ofVec3f field(1.0, 0.0, 0.0);
-	field.rotate(angle, ofVec3f(0.0, 0.0, 1.0));
 
-	desiredVelocity += FieldStrength * field;
+	ofVec3f field = computeVectorFieldHere(position);
+	desiredVelocity += field * FieldStrength * values_bias;
 
+	if (!based_field) {
+		float field_scalar = computeFieldHere(position);
+		desiredVelocity += desiredVelocity * field * ScalarStrength;
+	}
+	else {
+		desiredVelocity += ofVec3f(0.0, 0.0);
+	}
 
 	// -------------------------------- UPDATE --------------------------------
 	desired_velocities[id] = desiredVelocity;
@@ -309,19 +382,40 @@ void ofApp::computeDesiredVelocity(int id, vector<int> neighbours) {
 void ofApp::updateVelocityAndPosition(int id) {
 
 	// steering
-	ofVec3f velocity = Inertia * velocity + (1.0 - Inertia) * desired_velocities[id];
+	ofVec3f velocity = curves_vec[id][0] - curves_vec[id][1];
+	velocity = Inertia * velocity + (1.0 - Inertia) * desired_velocities[id];
 
 	// limit velocity to MaxSpeed
-	velocity.limit(MaxSpeed);
+	velocity.limit(MaxSpeed * values_bias);
 
 	// update trails
-	for (int i = base_vertexes; i > 1; i--) {
+	for (int i = curves_vec[id].size() - 1; i > 1; i--) {
 		curves_vec[id][i] = curves_vec[id][i - 1];
 	}
 
-	curves_vec[id][1] += velocity;
+	if (!freeze) {
+		curves_vec[id][1] += velocity;
+	}
 	curves_vec[id][0] = curves_vec[id][1] + velocity;
 
+}
+
+float ofApp::computeFieldHere(ofVec3f p) {
+	p *= (FieldScale * 0.1);
+	p += ofVec3f(0, 0, FieldTime);
+	float value = ofNoise(p);
+
+	return value;
+}
+
+ofVec3f ofApp::computeVectorFieldHere(ofVec3f p) {
+	p *= (FieldScale * 0.1);
+	p += ofVec3f(0, 0, FieldTime);
+	float angle = ofSignedNoise(p) * MaxAngle;
+	ofVec3f field(1.0, 0.0, 0.0);
+	field.rotate(angle, ofVec3f(0.0, 0.0, 1.0));
+
+	return field;
 }
 
 
@@ -338,6 +432,10 @@ void ofApp::keyPressed(int key){
 
 	if (key == 'h') {
 		gui_on = !gui_on;
+	}
+
+	if (key == 's') {
+		save = true;
 	}
 }
 

@@ -32,6 +32,8 @@ class ofApp : public ofBaseApp{
 		vector<int> findNeighbours(ofVec3f ag, int id);
 		void computeDesiredVelocity(int id, vector<int> neighbours);
 		void updateVelocityAndPosition(int id);
+		float computeFieldHere(ofVec3f p);
+		ofVec3f computeVectorFieldHere(ofVec3f p);
 
 
 		//----PARAMS
@@ -49,6 +51,8 @@ class ofApp : public ofBaseApp{
 		ofRectangle layout;
 		vector<ofPolyline> curves_vec;
 		vector<ofVec3f> desired_velocities;
+		float values_bias;
+		ofPolyline containment;
 
 
 
@@ -56,6 +60,7 @@ class ofApp : public ofBaseApp{
 		//----GRAPHICS
 		ofColor background_col;
 		ofColor shape_col;
+		vector<ofColor> colorz;
 
 
 
@@ -67,8 +72,14 @@ class ofApp : public ofBaseApp{
 		ofParameter<int> base_points;
 		ofParameter<int> base_vertexes;
 		ofParameter<bool> based;
+		ofParameter<bool> based_field;
 		ofParameter<bool> save;
+		ofParameter<bool> stop;
+		ofParameter<bool> freeze;
 		ofParameter<float> draw_vertex;
+		ofParameter<float> draw_field;
+		ofParameter<bool> draw_neighbourhood;
+		ofParameter<bool> draw_separation;
 		//-------------------------------
 		ofParameter<float> NeighborhoodRadiusSquare;
 		ofParameter<float> CohesionStrength;
@@ -76,6 +87,7 @@ class ofApp : public ofBaseApp{
 		ofParameter<float> SeparationStrength;
 		ofParameter<float> SeparationRadius;
 		ofParameter<float> FieldStrength;
+		ofParameter<float> ScalarStrength;
 		ofParameter<float> FieldScale;
 		ofParameter<float> FieldTime;
 		ofParameter<float> MaxAngle;
@@ -83,6 +95,9 @@ class ofApp : public ofBaseApp{
 		ofParameter<float> Inertia;
 		ofParameter<float> BoundingBoxSize;
 		ofParameter<float> ContainmentStrength;
+		ofParameter<float> values_ratio;
+
+
 
 
 		//RTree PointsRTree;
